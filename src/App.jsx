@@ -18,7 +18,7 @@ export default function App() {
   // These variables are injected by the Canvas environment at runtime, so we need to handle their potential absence during a regular build.
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
   let firebaseConfig = null;
-  if (typeof __firebase_config !== 'undefined') {
+  if (typeof __firebase_config !== 'undefined' && __firebase_config) {
     try {
       firebaseConfig = JSON.parse(__firebase_config);
     } catch (e) {
@@ -128,7 +128,7 @@ export default function App() {
           disabled={!db}
           className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-lg hover:bg-blue-700 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {message || 'Incrementar Contador'}
+          {db ? 'Incrementar Contador' : 'Conectando...'}
         </button>
         {message && <p className="mt-4 text-red-400">{message}</p>}
       </div>
@@ -140,3 +140,4 @@ export default function App() {
     </div>
   );
 }
+
