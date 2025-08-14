@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
 // Main component of the store.
 function App() {
@@ -71,20 +71,6 @@ function App() {
     setCart(prevCart => prevCart.filter(item => item.id !== productId));
   };
   
-  // Function to add a new product to Firestore. This function is not called
-  // in the UI, but it makes the `addDoc` import usable, fixing the Eslint error.
-  const addNewProduct = async (productData) => {
-    if (db) {
-      try {
-        const productsCollectionRef = collection(db, 'products');
-        await addDoc(productsCollectionRef, productData);
-        console.log("Product added successfully!");
-      } catch (e) {
-        console.error("Error adding product: ", e);
-      }
-    }
-  };
-
   // Home screen component.
   const HomeScreen = () => (
     <div className="p-8">
