@@ -59,7 +59,7 @@ export default function App() {
     }
 
     initFirebase();
-  }, []);
+  }, [firebaseConfig, initialAuthToken]); // <-- Dependencias añadidas
 
   // useEffect hook to subscribe to real-time updates from Firestore
   useEffect(() => {
