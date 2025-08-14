@@ -15,6 +15,7 @@ export default function App() {
   const [userId, setUserId] = useState(null);
 
   // Define fallback values for the environment variables to prevent compilation errors
+  // These variables are injected by the Canvas environment at runtime, so we need to handle their potential absence during a regular build.
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
   let firebaseConfig = null;
   if (typeof __firebase_config !== 'undefined') {
@@ -29,6 +30,7 @@ export default function App() {
   // useEffect hook for Firebase initialization and authentication
   useEffect(() => {
     async function initFirebase() {
+      // If firebaseConfig is not available, we can't initialize the app.
       if (!firebaseConfig) {
         setMessage('Error: La configuración de Firebase no está disponible.');
         return;
@@ -39,6 +41,7 @@ export default function App() {
         const firestore = getFirestore(app);
         const firebaseAuth = getAuth(app);
 
+        // Authenticate the user. Use the custom token if provided, otherwise sign in anonymously.
         if (initialAuthToken) {
           await signInWithCustomToken(firebaseAuth, initialAuthToken);
         } else {
@@ -49,44 +52,54 @@ export default function App() {
         if (user) {
           setDb(firestore);
           setUserId(user.uid);
-          setMessage('');
+          setMessage(''); // Clear the loading message once connected
         } else {
           setMessage('No se pudo autenticar al usuario.');
         }
       } catch (e) {
+        // Log the error and update the message for the user.
         console.error("Error al inicializar Firebase:", e);
         setMessage('Error al inicializar Firebase.');
       }
     }
 
+    // Call the initialization function.
     initFirebase();
   }, [firebaseConfig, initialAuthToken]);
 
   // useEffect hook to subscribe to real-time updates from Firestore
   useEffect(() => {
+    // We only proceed if both the database and user ID are available.
     if (!db || !userId) {
       return;
     }
 
+    // Reference to the Firestore document for the counter. This is where the count value is stored.
     const docRef = doc(db, `/artifacts/${appId}/public/data/counter_data/counter_doc`);
 
+    // onSnapshot listens for real-time changes to the document.
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
+        // If the document exists, update the state with the current count.
         setCount(docSnap.data().count);
       } else {
+        // If the document doesn't exist, create it with a default count of 0.
         setDoc(docRef, { count: 0 });
       }
     },
+    // Error handling for the real-time listener.
     (error) => {
       console.error("Error al escuchar el documento:", error);
       setMessage("Error al cargar los datos. Revisa la consola.");
     });
 
+    // The cleanup function is crucial to prevent memory leaks by detaching the listener.
     return () => unsubscribe();
   }, [db, userId, appId]);
 
   // Function to handle the increment of the counter
   const handleIncrement = async () => {
+    // Check if the database is ready before attempting to write.
     if (!db) {
       setMessage("La base de datos no está lista.");
       return;
@@ -94,6 +107,7 @@ export default function App() {
 
     try {
       const docRef = doc(db, `/artifacts/${appId}/public/data/counter_data/counter_doc`);
+      // Update the count in Firestore. This is an atomic operation.
       await updateDoc(docRef, {
         count: count + 1
       });
@@ -114,7 +128,7 @@ export default function App() {
           disabled={!db}
           className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-lg hover:bg-blue-700 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {!firebaseConfig ? 'Error de conexión' : (db ? 'Incrementar Contador' : 'Conectando...')}
+          {message || 'Incrementar Contador'}
         </button>
         {message && <p className="mt-4 text-red-400">{message}</p>}
       </div>
