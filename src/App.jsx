@@ -15,7 +15,6 @@ export default function App() {
   const [userId, setUserId] = useState(null);
 
   // Define fallback values for the environment variables to prevent compilation errors
-  // This is a crucial step for Netlify's build process, as these variables are injected at runtime
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
   const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
   const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
@@ -23,71 +22,59 @@ export default function App() {
   // useEffect hook for Firebase initialization and authentication
   useEffect(() => {
     async function initFirebase() {
-      // Check if Firebase config is available
       if (!firebaseConfig) {
         setMessage('Error: La configuración de Firebase no está disponible.');
         return;
       }
 
       try {
-        // Initialize Firebase app
         const app = initializeApp(firebaseConfig);
         const firestore = getFirestore(app);
         const firebaseAuth = getAuth(app);
 
-        // Sign in the user using the custom token or anonymously
         if (initialAuthToken) {
           await signInWithCustomToken(firebaseAuth, initialAuthToken);
         } else {
           await signInAnonymously(firebaseAuth);
         }
 
-        // Store the initialized instances and user ID in state
         const user = firebaseAuth.currentUser;
         if (user) {
           setDb(firestore);
           setUserId(user.uid);
-          setMessage(''); // Clear the loading message
+          setMessage('');
         } else {
           setMessage('No se pudo autenticar al usuario.');
         }
       } catch (e) {
-        // Handle any errors during initialization or authentication
         console.error("Error al inicializar Firebase:", e);
         setMessage('Error al inicializar Firebase.');
       }
     }
 
     initFirebase();
-  }, [firebaseConfig, initialAuthToken]); // <-- Dependencias añadidas
+  }, [firebaseConfig, initialAuthToken]);
 
   // useEffect hook to subscribe to real-time updates from Firestore
   useEffect(() => {
-    // Check if Firestore is ready and we have a user ID
     if (!db || !userId) {
       return;
     }
 
-    // Reference to the Firestore document for the counter
     const docRef = doc(db, `/artifacts/${appId}/public/data/counter_data/counter_doc`);
 
-    // Use onSnapshot to listen for real-time changes
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        // Update the state with the latest count from Firestore
         setCount(docSnap.data().count);
       } else {
-        // If the document doesn't exist, create it with a default count of 0
         setDoc(docRef, { count: 0 });
       }
     },
-    // Error handling for the listener
     (error) => {
       console.error("Error al escuchar el documento:", error);
       setMessage("Error al cargar los datos. Revisa la consola.");
     });
 
-    // Cleanup function to detach the listener when the component unmounts
     return () => unsubscribe();
   }, [db, userId, appId]);
 
@@ -99,9 +86,7 @@ export default function App() {
     }
 
     try {
-      // Get the document reference
       const docRef = doc(db, `/artifacts/${appId}/public/data/counter_data/counter_doc`);
-      // Atomically update the counter value in Firestore
       await updateDoc(docRef, {
         count: count + 1
       });
@@ -119,9 +104,10 @@ export default function App() {
         <div className="text-6xl font-extrabold text-blue-300 mb-8">{count}</div>
         <button
           onClick={handleIncrement}
-          className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-lg hover:bg-blue-700 transition transform hover:scale-105"
+          disabled={!db} // Deshabilita el botón si la base de datos no está lista
+          className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-lg hover:bg-blue-700 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Incrementar Contador
+          {db ? 'Incrementar Contador' : 'Conectando...'}
         </button>
         {message && <p className="mt-4 text-red-400">{message}</p>}
       </div>
@@ -133,3 +119,4 @@ export default function App() {
     </div>
   );
 }
+
