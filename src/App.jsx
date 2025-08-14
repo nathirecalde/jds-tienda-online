@@ -16,7 +16,14 @@ export default function App() {
 
   // Define fallback values for the environment variables to prevent compilation errors
   const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+  let firebaseConfig = null;
+  if (typeof __firebase_config !== 'undefined') {
+    try {
+      firebaseConfig = JSON.parse(__firebase_config);
+    } catch (e) {
+      console.error("Error parsing Firebase config:", e);
+    }
+  }
   const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
   // useEffect hook for Firebase initialization and authentication
@@ -104,10 +111,10 @@ export default function App() {
         <div className="text-6xl font-extrabold text-blue-300 mb-8">{count}</div>
         <button
           onClick={handleIncrement}
-          disabled={!db} // Deshabilita el botón si la base de datos no está lista
+          disabled={!db}
           className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-lg hover:bg-blue-700 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {db ? 'Incrementar Contador' : 'Conectando...'}
+          {!firebaseConfig ? 'Error de conexión' : (db ? 'Incrementar Contador' : 'Conectando...')}
         </button>
         {message && <p className="mt-4 text-red-400">{message}</p>}
       </div>
@@ -119,4 +126,3 @@ export default function App() {
     </div>
   );
 }
-
